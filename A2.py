@@ -3,8 +3,43 @@ import math
 import cv2 as cv
 
 # Init global variables
+background = None
 prev_centroid = None
 waving = False
+frame = 0
+wait_time = 30
+
+def main():
+    # The main loop for video capture
+    cap = cv.VideoCapture(0)
+
+    while True:
+        _, img = cap.read()
+        if img is None:
+            break
+        
+        # Flip the image to make life easier
+        img = cv.flip(img, 1)
+
+        # Crop the region of interest - the top left corner of the video
+        cv.rectangle(img, (0, 0), (600, 600), (0, 255, 0), 2)
+        crop_img = img[0:600, 0:600]
+
+        # Detect gestures and display the text
+        count_defects, drawing, waving = detect_gestures(crop_img)
+        annotate_gesture(img, count_defects, waving)
+
+        # Display the drawing in the original image
+        img[0:600, 0:600] = drawing  
+        cv.imshow('Gesture Detection', img)
+
+        # Press 'q' to stop video capturing
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv.destroyAllWindows()
+
 
 # Convert the image to grayscale and blur it for better recognition
 def img_preprocessing(img):
@@ -101,37 +136,6 @@ def annotate_gesture(img, count_defects, waving):
 
     if text:
         cv.putText(img, text, (620, 50), cv.FONT_HERSHEY_COMPLEX, 2,(0, 0, 255),2, cv.LINE_AA)
-
-def main():
-    # The main loop for video capture
-    cap = cv.VideoCapture(0)
-
-    while True:
-        _, img = cap.read()
-        if img is None:
-            break
-        
-        # Flip the image to make life easier
-        img = cv.flip(img, 1)
-
-        # Crop the region of interest - the top left corner of the video
-        cv.rectangle(img, (0, 0), (600, 600), (0, 255, 0), 2)
-        crop_img = img[0:600, 0:600]
-
-        # Detect gestures and display the text
-        count_defects, drawing, waving = detect_gestures(crop_img)
-        annotate_gesture(img, count_defects, waving)
-
-        # Display the drawing in the original image
-        img[0:600, 0:600] = drawing  
-        cv.imshow('Gesture Detection', img)
-
-        # Press 'q' to stop video capturing
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv.destroyAllWindows()
 
 
 if __name__ == "__main__":
