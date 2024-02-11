@@ -19,8 +19,8 @@ def main():
         crop_img = img[0:600, 0:600]
 
         # Detect gestures and display the text
-        count_defects, drawing, waving, fist = detect_gestures(crop_img)
-        annotate_gesture(img, count_defects, waving, fist)
+        count_defects, drawing, distance, circularity = detect_gestures(crop_img)
+        annotate_gesture(img, count_defects, distance, circularity)
 
         # Display the drawing in the original image
         img[0:600, 0:600] = drawing  
@@ -55,8 +55,7 @@ def segment_hand(crop_img):
 # The function for detection of handshapes (by num of fingers) and waving
 def detect_gestures(crop_img):
     prev_centroid = None
-    waving = False
-    fist = False
+    distance = 0
 
     hand_img, mask = segment_hand(crop_img)
 
@@ -73,6 +72,7 @@ def detect_gestures(crop_img):
         # Find the largest contour (the hand)
         max_contour = max(contours, key=lambda x: cv.contourArea(x))
         contour_area = cv.contourArea(max_contour)
+        perimeter = cv.arcLength(max_contour, True)
 
         if max_contour is not None and len(max_contour) > 0:
             x, y, w, h = cv.boundingRect(max_contour)
@@ -88,12 +88,7 @@ def detect_gestures(crop_img):
             hull = cv.convexHull(max_contour, returnPoints=False)
             defects = cv.convexityDefects(max_contour, hull)
 
-            # Detect a fist
-            area_ratio = contour_area / hull_area
-            perimeter = cv.arcLength(max_contour, True)
             circularity = 4 * np.pi * (contour_area / (perimeter ** 2))
-            if area_ratio > 0.8 and circularity > 0.7:  # Adjust these thresholds based on testing
-                fist_detected = True
 
             # Find the centroid of the hand and draw it in blue
             M = cv.moments(max_contour)
@@ -106,8 +101,6 @@ def detect_gestures(crop_img):
                 # Detect a waving hand
                 if prev_centroid is not None:
                     distance = math.sqrt((curr_centroid[0] - prev_centroid[0]) ** 2 + (curr_centroid[1] - prev_centroid[1]) ** 2)
-                    if distance > 5:
-                        waving = True
                 prev_centroid = curr_centroid
 
             if defects is not None:
@@ -128,14 +121,14 @@ def detect_gestures(crop_img):
 
                     cv.line(drawing, start, end, [0, 255, 0], 2)
 
-    return count_defects, drawing, waving, fist
+    return count_defects, drawing, distance, circularity
 
 # Annotating each hand shape and showing it on the screen
-def annotate_gesture(img, count_defects, waving, fist):
+def annotate_gesture(img, count_defects, distance, circularity):
     text = ""
-    if waving == True:
+    if distance > 3:
         text = "Waving"
-    elif fist == True:
+    elif circularity > 0.7:
         text = "Fist"
     elif count_defects == 0:
         text = "Pointing"
