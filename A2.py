@@ -24,7 +24,7 @@ def main():
 
         # Display the drawing in the original image
         img[0:600, 0:600] = drawing  
-        cv.imshow('Gesture Detection', img)
+        cv.imshow('Gesture Recognition', img)
 
         # Press 'q' to stop video capturing
         if cv.waitKey(1) & 0xFF == ord('q'):
@@ -57,6 +57,7 @@ def detect_gestures(crop_img):
     prev_centroid = None
     distance = 0
 
+    # Do hand segmentation before getting contours
     hand_img, mask = segment_hand(crop_img)
 
     # Preprocess
@@ -88,6 +89,7 @@ def detect_gestures(crop_img):
             hull = cv.convexHull(max_contour, returnPoints=False)
             defects = cv.convexityDefects(max_contour, hull)
 
+            # Find the circularity of the coutour - used for detecting a fist
             circularity = 4 * np.pi * (contour_area / (perimeter ** 2))
 
             # Find the centroid of the hand and draw it in blue
@@ -98,25 +100,29 @@ def detect_gestures(crop_img):
                 curr_centroid = (cx, cy)
                 cv.circle(drawing, curr_centroid, 5, (255, 255, 0), -1)
 
-                # Detect a waving hand
+                # Calculate the movment of the centroid - used for detect a waving hand
                 if prev_centroid is not None:
                     distance = math.sqrt((curr_centroid[0] - prev_centroid[0]) ** 2 + (curr_centroid[1] - prev_centroid[1]) ** 2)
                 prev_centroid = curr_centroid
 
+            #
             if defects is not None:
                 for i in range(defects.shape[0]):
                     s, e, f, d = defects[i, 0]
                     start = tuple(max_contour[s][0])
                     end = tuple(max_contour[e][0])
                     far = tuple(max_contour[f][0])
+                    # Calculate the triangle side lengths
                     a = math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
                     b = math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
                     c = math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+                    # Calculate the angle at the farthest point
                     angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c)) * 57
 
-                    # Defects detection
+                    # Count defects
                     if angle <= 90:
                         count_defects += 1
+                        # Highlight defects using red
                         cv.circle(drawing, far, 5, [0, 0, 255], -1)
 
                     cv.line(drawing, start, end, [0, 255, 0], 2)
