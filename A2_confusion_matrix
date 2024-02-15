@@ -1,0 +1,33 @@
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Actual and predicted labels (recorded by hand)
+# Fist - 0, Pointing - 1, Scissors - 2, Three Fingers - 3...
+y_true = [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5]  
+y_pred = [1,2,1,0,0,0,1,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,1,3,4,4,3,4,4,5,5,4,5,5,5,5,5,5,5,5] 
+
+# Compute confusion matrix
+conf_matrix = confusion_matrix(y_true, y_pred)
+
+# Plot the confusion matrix
+plt.figure(figsize=(12,7))
+sns.heatmap(conf_matrix, annot=True, fmt="d")
+plt.xlabel('Predicted')
+plt.ylabel('True')
+
+# Annotations for gesture meanings
+annotations = {
+    0: "Fist",
+    1: "Pointing",
+    2: "Scissors",
+    3: "Three fingers",
+    4: "Four fingers",
+    5: "Open hand"
+}
+
+# Loop through annotations to add them to the plot
+for label, gesture in annotations.items():
+    plt.text(-0.5, label, gesture, ha='right', va='center', fontsize=9)
+
+plt.savefig('confusion_matrix.png', dpi=300)
